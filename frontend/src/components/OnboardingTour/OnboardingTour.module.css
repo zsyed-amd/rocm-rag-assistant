@@ -121,34 +121,27 @@
   cursor: pointer;
 }
 
-.fabs {
+.pillBtn {
   position: fixed;
-  right: var(--space-lg);
-  bottom: var(--space-lg);
+  right: 1.25rem;
   z-index: var(--z-fab);
   display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.fab {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--amd-bg-card);
-  border: 1px solid var(--amd-border);
-  color: var(--amd-white);
-  font-size: var(--text-base);
-  font-weight: var(--fw-bold);
-  cursor: pointer;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-card);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--amd-bg-card);
+  border: 1px solid var(--amd-border-mid);
+  border-radius: 999px;
+  color: var(--amd-muted);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.fab:hover {
+.pillBtn:hover {
   border-color: var(--amd-teal);
-  box-shadow: var(--shadow-teal);
+  color: var(--amd-teal);
+  box-shadow: 0 0 0 3px rgba(0, 194, 222, 0.1);
 }

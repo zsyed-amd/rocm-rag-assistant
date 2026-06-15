@@ -35,18 +35,47 @@ const STEPS = [
   },
 ];
 
+const SunIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
+const InfoIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4" />
+    <path d="M12 8h.01" />
+  </svg>
+);
+
 function getTargetRect(target) {
   const el = document.querySelector(`[data-tour="${target}"]`);
   if (!el) return null;
   return el.getBoundingClientRect();
 }
 
+const TOUR_KEY = 'rocm_tour_seen';
+
 export default function OnboardingTour({ theme, onToggle }) {
   const [active, setActive] = useState(false);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState(null);
-
-  const TOUR_KEY = 'rocm_tour_seen';
+  const [tourSeen, setTourSeen] = useState(() => !!localStorage.getItem(TOUR_KEY));
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_KEY)) {
@@ -77,6 +106,7 @@ export default function OnboardingTour({ theme, onToggle }) {
 
   const endTour = () => {
     setActive(false);
+    setTourSeen(true);
     localStorage.setItem(TOUR_KEY, '1');
   };
 
@@ -89,8 +119,7 @@ export default function OnboardingTour({ theme, onToggle }) {
             ? rect.bottom + window.scrollY + 12
             : rect.top + window.scrollY - 12,
         left: Math.max(16, rect.left + rect.width / 2 - 180),
-        transform:
-          current.placement === 'bottom' ? 'none' : 'translateY(-100%)',
+        transform: current.placement === 'bottom' ? 'none' : 'translateY(-100%)',
       }
     : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
 
@@ -138,11 +167,7 @@ export default function OnboardingTour({ theme, onToggle }) {
               <h4 className={styles.tooltipTitle}>{current.title}</h4>
               <p className={styles.tooltipBody}>{current.body}</p>
               <div className={styles.tooltipFooter}>
-                <button
-                  className={styles.prevBtn}
-                  onClick={prev}
-                  disabled={step === 0}
-                >
+                <button className={styles.prevBtn} onClick={prev} disabled={step === 0}>
                   Back
                 </button>
                 <div className={styles.dots}>
@@ -163,23 +188,17 @@ export default function OnboardingTour({ theme, onToggle }) {
         )}
       </AnimatePresence>
 
-      <div className={styles.fabs}>
-        <button
-          className={styles.fab}
-          onClick={onToggle}
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          style={{ bottom: '4.25rem' }}
-        >
-          {theme === 'dark' ? '☀️' : '🌙'}
+      <button className={styles.pillBtn} onClick={onToggle} style={{ bottom: '4.25rem' }}>
+        {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+        {theme === 'dark' ? 'Light' : 'Dark'}
+      </button>
+
+      {tourSeen && !active && (
+        <button className={styles.pillBtn} onClick={startTour} style={{ bottom: '1.25rem' }}>
+          <InfoIcon />
+          Tour
         </button>
-        <button
-          className={styles.fab}
-          onClick={startTour}
-          title="Start demo tour"
-        >
-          ?
-        </button>
-      </div>
+      )}
     </>
   );
 }

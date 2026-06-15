@@ -84,7 +84,7 @@ export default function App() {
 
   return (
     <>
-      <Header theme={theme} />
+      <Header />
       <main style={{ flex: 1, position: 'relative', zIndex: 1 }}>
         <QueryForm onSubmit={handleSubmit} loading={loading} />
         <MetricsBar metrics={activeMetrics} />
