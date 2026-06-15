@@ -12,6 +12,7 @@
   box-shadow: 0 0 0 4px rgba(0, 194, 222, 0.18), 0 0 24px rgba(0, 194, 222, 0.25);
   pointer-events: none;
   z-index: 502;
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
 }
 
 .tooltip {

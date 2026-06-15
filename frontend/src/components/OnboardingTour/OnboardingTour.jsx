@@ -116,8 +116,8 @@ export default function OnboardingTour({ theme, onToggle }) {
     ? {
         top:
           current.placement === 'bottom'
-            ? rect.bottom + window.scrollY + 12
-            : rect.top + window.scrollY - 12,
+            ? rect.bottom + 12
+            : rect.top - 12,
         left: Math.max(16, rect.left + rect.width / 2 - 180),
         transform: current.placement === 'bottom' ? 'none' : 'translateY(-100%)',
       }
@@ -125,7 +125,7 @@ export default function OnboardingTour({ theme, onToggle }) {
 
   const spotStyle = rect
     ? {
-        top: rect.top + window.scrollY - 8,
+        top: rect.top - 8,
         left: rect.left - 8,
         width: rect.width + 16,
         height: rect.height + 16,
