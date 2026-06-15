@@ -86,6 +86,30 @@
   cursor: not-allowed;
 }
 
+.sampleBtn {
+  padding: 12px var(--space-lg);
+  background: transparent;
+  color: var(--amd-teal);
+  border: 1px dashed var(--amd-teal);
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
+}
+
+.sampleBtn:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(0, 194, 222, 0.06);
+}
+
+.sampleBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .clearBtn {
   padding: 12px var(--space-lg);
   background: transparent;

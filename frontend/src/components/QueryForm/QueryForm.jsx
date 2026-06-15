@@ -11,7 +11,7 @@ const EXAMPLES = [
   'How do I install PyTorch with ROCm support?',
 ];
 
-export default function QueryForm({ onSubmit, loading }) {
+export default function QueryForm({ onSubmit, onSample, loading }) {
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e) => {
@@ -56,6 +56,14 @@ export default function QueryForm({ onSubmit, loading }) {
               data-tour="submit"
             >
               {loading ? 'Querying Models...' : 'Submit to All 4 Models'}
+            </button>
+            <button
+              type="button"
+              className={styles.sampleBtn}
+              onClick={onSample}
+              disabled={loading}
+            >
+              Load Sample Data
             </button>
             <button
               type="button"
