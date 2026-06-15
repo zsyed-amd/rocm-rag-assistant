@@ -1,39 +1,44 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import styles from './OnboardingTour.module.css';
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import styles from './OnboardingTour.module.css'
+
+const TOUR_KEY = 'rocm_tour_done'
+const PAD = 10
+const TOOLTIP_W = 300
+const GAP = 16
 
 const STEPS = [
   {
-    target: 'header',
+    target: '[data-tour="header"]',
     title: 'AMD ROCm RAG Assistant',
     body: 'This demo runs four large language models in parallel on an AMD Instinct MI300X GPU with 192GB HBM3 memory, powered by ROCm open software.',
-    placement: 'bottom',
+    position: 'bottom',
   },
   {
-    target: 'form',
+    target: '[data-tour="form"]',
     title: 'Ask Your Question',
     body: 'Type any ROCm-related question — installation, debugging, HIP programming, PyTorch setup, and more. Use the example chips below for quick starts.',
-    placement: 'bottom',
+    position: 'bottom',
   },
   {
-    target: 'submit',
+    target: '[data-tour="submit"]',
     title: 'Submit to All 4 Models',
     body: 'One click sends your question to Mixtral 8x7B, Llama 3.1 8B, Gemma 2 27B, and Phi 3 14B simultaneously — all running on-device via ROCm + Ollama.',
-    placement: 'bottom',
+    position: 'bottom',
   },
   {
-    target: 'results',
+    target: '[data-tour="results"]',
     title: 'Compare Model Responses',
-    body: 'Switch between model tabs to compare answers side by side. Each tab shows the response, plus per-model latency metrics: retrieval time, inference time, and tokens/second.',
-    placement: 'top',
+    body: 'Switch between model tabs to compare answers side by side. Each tab shows the response plus per-model latency metrics: retrieval time, inference time, and tokens/second.',
+    position: 'top',
   },
   {
-    target: 'cards',
-    title: 'Tech Stack Details',
-    body: 'Click any card to explore the hardware, software, performance characteristics, and RAG architecture behind this demo.',
-    placement: 'top',
+    target: '[data-tour="cards"]',
+    title: 'Explore the Tech Stack',
+    body: 'Click any card to learn more about the hardware and software powering this demo — from MI300X specs to ROCm documentation.',
+    position: 'top',
   },
-];
+]
 
 const SunIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -47,158 +52,159 @@ const SunIcon = () => (
     <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
   </svg>
-);
+)
 
 const MoonIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </svg>
-);
+)
 
 const InfoIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
-    <path d="M12 16v-4" />
-    <path d="M12 8h.01" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
-);
+)
 
-function getTargetRect(target) {
-  const el = document.querySelector(`[data-tour="${target}"]`);
-  if (!el) return null;
-  return el.getBoundingClientRect();
+function getTooltipPos(rect, position) {
+  const centreX = Math.max(12, Math.min(rect.left + rect.width / 2 - TOOLTIP_W / 2, window.innerWidth - TOOLTIP_W - 12))
+
+  if (position === 'bottom') return { top: rect.bottom + GAP,                              left: centreX, width: TOOLTIP_W }
+  if (position === 'top')    return { bottom: window.innerHeight - rect.top + GAP,         left: centreX, width: TOOLTIP_W }
+  if (position === 'right')  return { top: rect.top,  left: rect.right + GAP,              width: TOOLTIP_W }
+  if (position === 'left')   return { top: rect.top,  left: rect.left - GAP - TOOLTIP_W,  width: TOOLTIP_W }
 }
 
-const TOUR_KEY = 'rocm_tour_seen';
-
 export default function OnboardingTour({ theme, onToggle }) {
-  const [active, setActive] = useState(false);
-  const [step, setStep] = useState(0);
-  const [rect, setRect] = useState(null);
-  const [tourSeen, setTourSeen] = useState(() => !!localStorage.getItem(TOUR_KEY));
+  const [step, setStep]       = useState(0)
+  const [rect, setRect]       = useState(null)
+  const [visible, setVisible] = useState(() => !localStorage.getItem(TOUR_KEY))
 
-  useEffect(() => {
-    if (!localStorage.getItem(TOUR_KEY)) {
-      setTimeout(() => startTour(), 800);
-    }
-  }, []);
+  function dismiss() {
+    localStorage.setItem(TOUR_KEY, '1')
+    setRect(null)
+    setVisible(false)
+  }
 
-  useEffect(() => {
-    if (!active) return;
-    const r = getTargetRect(STEPS[step].target);
-    setRect(r);
-  }, [active, step]);
+  function restart() {
+    setStep(0)
+    setRect(null)
+    setVisible(true)
+  }
 
-  const startTour = () => {
-    setStep(0);
-    setActive(true);
-  };
+  function next() {
+    if (step < STEPS.length - 1) setStep((s) => s + 1)
+    else dismiss()
+  }
 
-  const next = () => {
-    if (step < STEPS.length - 1) {
-      setStep((s) => s + 1);
+  const measureTarget = useCallback(() => {
+    const el = document.querySelector(STEPS[step].target)
+    if (!el) return
+
+    const r = el.getBoundingClientRect()
+    const inView = r.top >= 0 && r.bottom <= window.innerHeight
+
+    if (inView) {
+      setRect(r)
     } else {
-      endTour();
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setTimeout(() => setRect(el.getBoundingClientRect()), 180)
     }
-  };
+  }, [step])
 
-  const prev = () => setStep((s) => Math.max(0, s - 1));
+  useLayoutEffect(() => {
+    if (!visible) return
+    measureTarget()
+  }, [step, visible, measureTarget])
 
-  const endTour = () => {
-    setActive(false);
-    setTourSeen(true);
-    localStorage.setItem(TOUR_KEY, '1');
-  };
+  useEffect(() => {
+    if (!visible) return
+    window.addEventListener('resize', measureTarget)
+    return () => window.removeEventListener('resize', measureTarget)
+  }, [visible, measureTarget])
 
-  const current = STEPS[step];
-
-  const tooltipStyle = rect
-    ? {
-        top:
-          current.placement === 'bottom'
-            ? rect.bottom + 12
-            : rect.top - 12,
-        left: Math.max(16, rect.left + rect.width / 2 - 180),
-        transform: current.placement === 'bottom' ? 'none' : 'translateY(-100%)',
-      }
-    : { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-
-  const spotStyle = rect
-    ? {
-        top: rect.top - 8,
-        left: rect.left - 8,
-        width: rect.width + 16,
-        height: rect.height + 16,
-      }
-    : null;
+  const showTour   = visible && rect
+  const current    = STEPS[step]
+  const tooltipPos = rect ? getTooltipPos(rect, current.position) : null
 
   return (
-    <>
-      <AnimatePresence>
-        {active && (
-          <>
-            <motion.div
-              className={styles.overlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={endTour}
-            />
-            {spotStyle && (
-              <motion.div
-                className={styles.spotlight}
-                style={spotStyle}
-                layoutId="spotlight"
-                transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              />
-            )}
-            <motion.div
-              className={styles.tooltip}
-              style={tooltipStyle}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className={styles.tooltipHeader}>
-                <span className={styles.stepCount}>{step + 1} / {STEPS.length}</span>
-                <button className={styles.skipBtn} onClick={endTour}>Skip tour</button>
-              </div>
-              <h4 className={styles.tooltipTitle}>{current.title}</h4>
-              <p className={styles.tooltipBody}>{current.body}</p>
-              <div className={styles.tooltipFooter}>
-                <button className={styles.prevBtn} onClick={prev} disabled={step === 0}>
-                  Back
-                </button>
-                <div className={styles.dots}>
-                  {STEPS.map((_, i) => (
-                    <span
-                      key={i}
-                      className={`${styles.dot} ${i === step ? styles.dotActive : ''}`}
-                      onClick={() => setStep(i)}
-                    />
-                  ))}
-                </div>
-                <button className={styles.nextBtn} onClick={next}>
-                  {step === STEPS.length - 1 ? 'Done' : 'Next'}
-                </button>
-              </div>
-            </motion.div>
-          </>
+    <div className={styles.root}>
+      {/* Dim overlay with clip-path hole cut out around target */}
+      {showTour && (
+        <div
+          className={styles.overlay}
+          onClick={dismiss}
+          style={{
+            '--sx': `${rect.left   - PAD}px`,
+            '--sy': `${rect.top    - PAD}px`,
+            '--sw': `${rect.width  + PAD * 2}px`,
+            '--sh': `${rect.height + PAD * 2}px`,
+          }}
+        />
+      )}
+
+      {/* Teal spotlight ring — Framer Motion animates between positions */}
+      {showTour && (
+        <motion.div
+          className={styles.spotlight}
+          animate={{
+            left:    rect.left   - PAD,
+            top:     rect.top    - PAD,
+            width:   rect.width  + PAD * 2,
+            height:  rect.height + PAD * 2,
+            opacity: 1,
+          }}
+          initial={{
+            left:    rect.left   - PAD,
+            top:     rect.top    - PAD,
+            width:   rect.width  + PAD * 2,
+            height:  rect.height + PAD * 2,
+            opacity: 0,
+          }}
+          transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+        />
+      )}
+
+      {/* Tooltip — crossfades between steps */}
+      <AnimatePresence mode="wait">
+        {showTour && tooltipPos && (
+          <motion.div
+            key={step}
+            className={styles.tooltip}
+            style={tooltipPos}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{    opacity: 0, y: 6 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            <div className={styles.tooltipStep}>Step {step + 1} of {STEPS.length}</div>
+            <div className={styles.tooltipTitle}>{current.title}</div>
+            <p className={styles.tooltipBody}>{current.body}</p>
+            <div className={styles.tooltipFooter}>
+              <button className={styles.skipBtn} onClick={dismiss}>Skip</button>
+              <button className={styles.nextBtn} onClick={next}>
+                {step < STEPS.length - 1 ? 'Next →' : 'Get Started'}
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Theme toggle pill */}
       <button className={styles.pillBtn} onClick={onToggle} style={{ bottom: '4.25rem' }}>
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
         {theme === 'dark' ? 'Light' : 'Dark'}
       </button>
 
-      {tourSeen && !active && (
-        <button className={styles.pillBtn} onClick={startTour} style={{ bottom: '1.25rem' }}>
+      {/* Tour replay pill — only shown after tour is dismissed */}
+      {!visible && (
+        <button className={styles.pillBtn} onClick={restart} style={{ bottom: '1.25rem' }}>
           <InfoIcon />
           Tour
         </button>
       )}
-    </>
-  );
+    </div>
+  )
 }
